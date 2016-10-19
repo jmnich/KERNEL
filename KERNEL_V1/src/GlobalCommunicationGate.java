@@ -6,7 +6,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.channels.NotYetConnectedException;
@@ -56,6 +55,7 @@ public class GlobalCommunicationGate implements Runnable, FFDEObserver{
                     // log successful socket binding
                     transmitInternal(loggerID, Arrays.asList(String.valueOf(System.nanoTime()), "Global " +
                             "communication gate connected"));
+                    gateActive.set(true);           //< set readiness flag
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -109,6 +109,16 @@ public class GlobalCommunicationGate implements Runnable, FFDEObserver{
         ffdeServer.waitUntilNetworkIsReady();
         transmitInternal(loggerID, Arrays.asList(String.valueOf(System.nanoTime()), "Global communication gate up"));
 
+        // wait until the gate is paired with a ground station
+        while(!gateActive.get()) {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // now the gate can operate normally
         while(true) {
             if(rx.hasNext()) {
                 String messageLine = rx.next();

@@ -14,10 +14,11 @@ import java.util.List;
  */
 public class ApplicationControl implements Runnable, FFDEObserver{
 
-    private FFDEKernel kernel;
-    private FFDEServer ffdeLogServer;
-    private HashMap<String, List<List<String>>>   logStorage;
-    private GlobalCommunicationGate globalCommunicationGate;
+    private FFDEKernel                              kernel;
+    private FFDEServer                              ffdeLogServer;
+    private HashMap<String, List<List<String>>>     logStorage;
+    private GlobalCommunicationGate                 globalCommunicationGate;
+    private GlobalCommandServer                     globalCommandServer;
 
     public ApplicationControl() {
         // prepare kernel
@@ -38,6 +39,10 @@ public class ApplicationControl implements Runnable, FFDEObserver{
 
         // prepare global communication gate for the machine
         globalCommunicationGate = new GlobalCommunicationGate(6667);
+
+        // prepare global command server responsible fot redirecting commands to right recipients
+        globalCommandServer = new GlobalCommandServer();
+
 
         Thread logThread = new Thread(this);
         logThread.setName("main log and application control thread");
@@ -68,6 +73,8 @@ public class ApplicationControl implements Runnable, FFDEObserver{
                 logStorage.put(senderName, new LinkedList<>());
                 logStorage.get(senderName).add(event.getMessage());
             }
+
+            //System.out.println("Log got: " + senderName + "  " + event.getMessage().toString());
         }
     }
 }

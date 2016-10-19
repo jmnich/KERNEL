@@ -22,6 +22,18 @@ public class GlobalCommandServer implements FFDEObserver{
         commandRecipients = new LinkedHashMap<>();
 
         ffdeServer.openPipeline(loggerID);  //< open connection channel with the main logger
+
+        // create a thread that will wait until FFDE is up and transmit hello world message to global log
+        Thread reportToLogAgent = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                ffdeServer.waitUntilNetworkIsReady();
+
+                ffdeServer.sendThroughPipeline(loggerID, Arrays.asList(String.valueOf(System.nanoTime()), "Global " +
+                        "command server up"));
+            }
+        });
+        reportToLogAgent.start();
     }
 
     // method called by communication gate when command is received
