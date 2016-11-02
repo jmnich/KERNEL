@@ -26,6 +26,7 @@ public class FFDEEventDispatcher implements Runnable, FFDEObservable {
     // thread used to assign tasks for other executor services (this is different than in timer due to safety reasons)
     private ExecutorService executorAssignService = Executors.newSingleThreadExecutor();
     private ExecutorService executorUpdateService;    //< regular worker threads
+    private ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
 
     /**
      * Creates a dispatcher with no registered events.
@@ -73,35 +74,61 @@ public class FFDEEventDispatcher implements Runnable, FFDEObservable {
      */
     @Override
     public void run() {
-        while(true) {
-            // if the eventQueue contains a new event
-            if(eventInQueue()) {
-                FFDEEvent processedEvent;
-                processedEvent = eventQueue.remove();
+        scheduledExecutor.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                while(eventInQueue()) {
+                    FFDEEvent processedEvent;
+                    processedEvent = eventQueue.remove();
 
-                // if the event is registered handle it
-                if (eventsObservers.containsKey(processedEvent.getIdentifier())) {
-                    List<FFDEObserver> listOfObservers = eventsObservers.get(processedEvent.getIdentifier());
+                    // if the event is registered handle it
+                    if (eventsObservers.containsKey(processedEvent.getIdentifier())) {
+                        List<FFDEObserver> listOfObservers = eventsObservers.get(processedEvent.getIdentifier());
 
-                    for(FFDEObserver o : listOfObservers) {
-                        executorUpdateService.execute(() -> o.notifyFFDE(processedEvent));
-                    }
+                        for(FFDEObserver o : listOfObservers) {
+                            executorUpdateService.execute(() -> o.notifyFFDE(processedEvent));
+                        }
 
-                    // now send a new task dispatcher object to the queue of assigning thread (blah blah blah)
+                        // now send a new task dispatcher object to the queue of assigning thread (blah blah blah)
 //                    executorAssignService.execute(new ObserverUpdateAssigner(listOfObservers, executorUpdateService,
 //                            processedEvent));
 
-                } else {
-                    // TODO this block of code should put something into error log
-                } //< now the 'eventObserversLock' is released and the executor begins its job
-            }
-            else{
-                try {
-                    Thread.sleep(1);                //< allows other threads to access event queue
+                    } else {
+                        // TODO this block of code should put something into error log
+                    } //< now the 'eventObserversLock' is released and the executor begins its job
                 }
-                catch(InterruptedException e) {}    //< probably no need to react on this
             }
-        }
+        }, 0, 1, TimeUnit.MILLISECONDS);
+
+//        while(true) {
+//            // if the eventQueue contains a new event
+//            if(eventInQueue()) {
+//                FFDEEvent processedEvent;
+//                processedEvent = eventQueue.remove();
+//
+//                // if the event is registered handle it
+//                if (eventsObservers.containsKey(processedEvent.getIdentifier())) {
+//                    List<FFDEObserver> listOfObservers = eventsObservers.get(processedEvent.getIdentifier());
+//
+//                    for(FFDEObserver o : listOfObservers) {
+//                        executorUpdateService.execute(() -> o.notifyFFDE(processedEvent));
+//                    }
+//
+//                    // now send a new task dispatcher object to the queue of assigning thread (blah blah blah)
+////                    executorAssignService.execute(new ObserverUpdateAssigner(listOfObservers, executorUpdateService,
+////                            processedEvent));
+//
+//                } else {
+//                    // TODO this block of code should put something into error log
+//                } //< now the 'eventObserversLock' is released and the executor begins its job
+//            }
+//            else{
+//                try {
+//                    Thread.sleep(1);                //< allows other threads to access event queue
+//                }
+//                catch(InterruptedException e) {}    //< probably no need to react on this
+//            }
+//        }
     }
 
     /**

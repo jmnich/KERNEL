@@ -28,9 +28,14 @@ public class GlobalCommandServer implements FFDEObserver{
             @Override
             public void run() {
                 ffdeServer.waitUntilNetworkIsReady();
+                // TODO debug feature
+                System.out.println("Global command server up and attempting to log state");
 
                 ffdeServer.sendThroughPipeline(loggerID, Arrays.asList(String.valueOf(System.nanoTime()), "Global " +
                         "command server up"));
+                // TODO debug feature
+                System.out.println("Global command server logged state");
+
             }
         });
         reportToLogAgent.start();

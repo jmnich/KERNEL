@@ -15,10 +15,11 @@ import java.util.concurrent.*;
  */
 public class FFDETimer implements Runnable, FFDEObservable {
     private int tickInterval = 1;                                   //< tick interval [ms]
-    private ExecutorService executorAssignService = Executors.newSingleThreadExecutor();    //< assign executor
-    private ExecutorService executorUpdateService = Executors.newFixedThreadPool(4);        //< update executors
+    //private ExecutorService executorAssignService = Executors.newSingleThreadExecutor();    //< assign executor
+    //private ExecutorService executorUpdateService = Executors.newFixedThreadPool(4);        //< update executors
 
     private List<FFDEObserver> observers = new CopyOnWriteArrayList<>();    //< list of observers of the 'tick' event
+    private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);   //< executes ticks
 
     private boolean onFlag = true;                                  //< when this flag is set the timer generates ticks
     private final Object onFlagLock = new Object();                 //< synchronization lock
@@ -52,18 +53,30 @@ public class FFDETimer implements Runnable, FFDEObservable {
      */
     @Override
     public void run() {
-        while(true) {
-            try {
-                Thread.sleep(tickInterval);         //< make interval
-            } catch (Exception e) {      //< if this happens the timer is lost anyway, no recovery provided
-                e.printStackTrace();
-            }
-            if(checkOnFlag()) {                     //< generate ticks only when onFlag is set
-                for(FFDEObserver o : observers) {
-                    o.notifyFFDE(tickEvent);
+        executorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if(checkOnFlag()) {                     //< generate ticks only when onFlag is set
+                    for(FFDEObserver o : observers) {
+                        o.notifyFFDE(tickEvent);
+                    }
                 }
             }
-        }
+        }, 0, 1, TimeUnit.MILLISECONDS);
+
+
+//        while(true) {
+//            try {
+//                Thread.sleep(tickInterval);         //< make interval
+//            } catch (Exception e) {      //< if this happens the timer is lost anyway, no recovery provided
+//                e.printStackTrace();
+//            }
+//            if(checkOnFlag()) {                     //< generate ticks only when onFlag is set
+//                for(FFDEObserver o : observers) {
+//                    o.notifyFFDE(tickEvent);
+//                }
+//            }
+//        }
     }
 
     /**

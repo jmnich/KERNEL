@@ -2,7 +2,9 @@ import FFDENetwork.FFDEEvent;
 import FFDENetwork.FFDEKernel;
 import FFDENetwork.FFDEObserver;
 import FFDENetwork.FFDEServer;
+import jdk.nashorn.internal.objects.Global;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,15 +12,16 @@ import java.util.List;
 /**
  * Created by Jakub on 15.10.2016.
  *
- * The very heart of the drone.
+ * The very heart of the drone. Provides kernel for local FFDE network, system logging and commands distribution.
  */
-public class ApplicationControl implements Runnable, FFDEObserver{
+public class ApplicationControl implements Runnable {
 
     private FFDEKernel                              kernel;
-    private FFDEServer                              ffdeLogServer;
-    private HashMap<String, List<List<String>>>     logStorage;
+//    private FFDEServer                              ffdeLogServer;
+//    private HashMap<String, List<List<String>>>     logStorage;
     private GlobalCommunicationGate                 globalCommunicationGate;
     private GlobalCommandServer                     globalCommandServer;
+    private GlobalLogger                            globalLogger;
 
     public ApplicationControl() {
         // prepare kernel
@@ -32,16 +35,32 @@ public class ApplicationControl implements Runnable, FFDEObserver{
 //        }
 
         // prepare main log server
-        ffdeLogServer = new FFDEServer("mainLog", 6666, this);
-
-
-        logStorage = new HashMap<>();
+        globalLogger = new GlobalLogger();
 
         // prepare global communication gate for the machine
         globalCommunicationGate = new GlobalCommunicationGate(6667);
 
         // prepare global command server responsible fot redirecting commands to right recipients
         globalCommandServer = new GlobalCommandServer();
+
+//        Thread th = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                while(true) {
+//                    try {
+//                        Thread.sleep(500);
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    System.out.println(logStorage.toString());
+//                    System.out.println(ffdeLogServer.getActivePipelines().toString());
+//
+//                    ffdeLogServer.sendThroughPipeline("globalCommandServer", Arrays.asList("KURWA JEGO JEBANA MAC"));
+//                }
+//            }
+//        });
+//        th.start();
 
 
         Thread logThread = new Thread(this);
@@ -51,30 +70,14 @@ public class ApplicationControl implements Runnable, FFDEObserver{
 
     @Override
     public void run() {
-        ffdeLogServer.waitUntilNetworkIsReady();
+//        while(true) {
+//            try {
+//                Thread.sleep(500);
+//                System.out.println(globalLogger.getLogStorage().toString());
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
 
-        //System.out.println("Kernel ready, state:    " + kernel.getCurrentState());
-
-        // TODO nie wiem czy to jest konieczne
-
-    }
-
-    @Override
-    public void notifyFFDE(FFDEEvent event) {
-        String identifier = event.getIdentifier();
-
-        if(identifier.startsWith("pipe_")) {        //< rx event from any pipeline
-            String senderName = identifier.substring(5);
-
-            if(logStorage.containsKey(senderName)) {
-                logStorage.get(senderName).add(event.getMessage());
-            }
-            else {
-                logStorage.put(senderName, new LinkedList<>());
-                logStorage.get(senderName).add(event.getMessage());
-            }
-
-            //System.out.println("Log got: " + senderName + "  " + event.getMessage().toString());
-        }
     }
 }

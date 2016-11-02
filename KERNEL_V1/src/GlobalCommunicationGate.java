@@ -107,7 +107,12 @@ public class GlobalCommunicationGate implements Runnable, FFDEObserver{
     @Override
     public void run() {
         ffdeServer.waitUntilNetworkIsReady();
+        // TODO debug feature
+        System.out.println("Global comm gate up and attempting to log state");
+
         transmitInternal(loggerID, Arrays.asList(String.valueOf(System.nanoTime()), "Global communication gate up"));
+        // TODO debug feature
+        System.out.println("Global comm gate logged state");
 
         // wait until the gate is paired with a ground station
         while(!gateActive.get()) {
@@ -148,9 +153,22 @@ public class GlobalCommunicationGate implements Runnable, FFDEObserver{
 
         // check if the command is addressed to the gate itself
         switch(firstLine) {
+            case "echo":
+                transmitExternal(Arrays.asList("echo"));
+                break;
 
-//            case "bagno":
-//                break;
+            case "Echo":
+                transmitExternal(Arrays.asList("Echo"));
+                break;
+
+            case "confirmGroundConnection":
+                String rdy;
+                if(gateActive.get())
+                    rdy = "gateConnected";
+                else
+                    rdy = "gateNotConnected";
+                transmitInternal(event.getMessage().get(1), Arrays.asList(gateID, rdy));
+                break;
 
             default:
                 // if the command was not recognized as internal transmit it through net
